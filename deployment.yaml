@@ -1,21 +1,37 @@
-apiVersion: apps/v1
-kind: Deployment
+# -----------------------------
+# Apache Service (LoadBalancer)
+# -----------------------------
+apiVersion: v1
+kind: Service
 metadata:
-  name: apache-deployment
-  labels:
-    app: apache-webserver
+  name: apache-service
 spec:
-  replicas: 2 # You can adjust the number of replicas
+  type: LoadBalancer
   selector:
-    matchLabels:
-      app: apache-webserver
-  template:
-    metadata:
-      labels:
-        app: apache-webserver
-    spec:
-      containers:
-      - name: apache-container
-        image: httpd:latest # Uses the latest official Apache HTTP Server image
-        ports:
-        - containerPort: 80 # Apache listens on port 80 by default
+    app: apache
+  ports:
+  - port: 80
+    targetPort: 80
+
+---
+# -----------------------------
+# Horizontal Pod Autoscaler
+# -----------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: apache-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: apache-deploy
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
